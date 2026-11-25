@@ -1,0 +1,58 @@
+Pixel 8a, Android API 37, 2026-10-28
+PASS: capture, paused gap, focus interruption, manual resume, stop while paused, WAV header and shared export.
+Export inspected: 3.111 seconds, peak PCM magnitude 269, 126113 nonzero samples.
+Build and lint successful; 0 lint errors.
+Actual call and car hardware tests remain outstanding.
+
+Interface redesign: Gradle 9.6.0 / AGP 9.5.0 upgrade preserved.
+Build and lint PASS. Device integration check PASS after redesign.
+Visual QA on unlocked Pixel: recorder, recording, paused, saving, saved-note cards and inline playback.
+Manual UI: primary Record/Pause control, Stop & save, library navigation and playback exercised.
+
+Delivery integration: selected primary:syncthing/Recordings through system folder picker.
+Syncthing-Fork 2.1.3.0 received START after recording save (forceStart by intent).
+Workstation received E:\Sync\Recordings\Note_2026-10-28_14-30-30_267.wav (286764 bytes).
+Phone and workstation SHA256 match: 145420059cbd1f9edfda7b89161e00333e9a95431df0b008609ddebdf5446e4a.
+
+Compressed notes: 44.1 kHz mono AAC-LC, 64 kbps, M4A.
+PASS: capture, pause gaps, focus interruption, manual resume, stop while paused, AAC format/duration/size, compressed staging cleanup and exact delivery copy.
+Synthetic one-hour AAC stream (repeated encoded packets): M4A 29424431 bytes, staging 29885646 bytes, duration 3600022 ms, seeking near end PASS.
+The one-hour file test validates file size, timestamps and seeking, not an hour of real-time microphone capture.
+Normal recording now writes both AAC recovery data and M4A during capture; Stop closes the existing container without a second encoding or remux pass.
+Compressed microphone test notes received through Syncthing at E:\Sync\Recordings.
+
+Android Auto prototype v0.2-auto:
+PASS: media browser startup before activity, real saved-note catalog, unarmed rejection and setup-error recovery.
+PASS: custom Record/Pause/Resume with phone activity backgrounded, input-level metadata, standard Play cannot resume microphone, system Pause/Stop, saved-note playback and seek, drive session remains enabled between notes, invalid-id rejection.
+Google Desktop Head Unit 2.0 + Pixel Android Auto 17.9: Autio discovered in launcher; Record button visible in media screen.
+Manual projected-screen Record -> Pause -> Resume -> Stop PASS; status and live dBFS/text meter visible.
+Result Note_2026-10-28_15-16-57_155.m4a (333512 bytes) received through Syncthing at E:\Sync\Recordings.
+Actual Binize microphone and phone-call interruption tests remain outstanding. Current capture API is AudioRecord, not CarAudioRecord.
+
+v0.3-auto control refinements:
+PASS: duplicate custom Pause removed; standard Pause retained. Idle skip actions omitted to promote Record beside Play.
+Actual DHU test: with manual preparation disabled, Record automatically started/enabled the recorder from the background; live capture visible at 00:05/-36 dBFS. Stop committed the note.
+Record artwork is red and icon is larger ring-and-dot; Android Auto host still renders the custom control icon white. App-defined car colorAccent does not force per-action tint in this host.
+
+v0.4-car-screen:
+PASS assembleDebug, assembleDebugAndroidTest, lintDebug; existing media instrumentation suite.
+PASS actual DHU Record -> Pause -> Resume -> Stop using the dedicated PaneTemplate screen.
+Paused at 00:10, resumed same note, saved duration 00:17, actual dBFS and route displayed.
+Note_2026-10-28_16-17-39_753.m4a: 147141 bytes; workstation Syncthing copy SHA256 matches private original:
+4fc5d12d4e89fc2377a0cc9f7893ff6310cdf19ae8a8af10c004825d8aab6d35
+PASS Saved notes -> playback progress -> Pause -> Stop -> back navigation.
+Host MediaPlaybackTemplate failed controller lookup; explicit PaneTemplate playback controls used for this development build.
+Installed on Pixel; dist/Autio-Notes-Android-Auto-test.apk updated. Binize projection and actual call remain untested.
+v0.5-icons-cancel: PASS build/lint; recorder test capture/interruption/save/delivery plus cancel during recording and while paused (no committed note, no staging). PASS media suite. DHU Record/Pause/Stop/X icons visually inspected. App waveform icon and artwork updated.
+
+v0.6-managed-library October 29:
+PASS assembleDebug, assembleDebugAndroidTest, lintDebug. Installed and dist APK updated.
+PASS updated recorder suite (real capture, focus interruption, manual resume, AAC/managed delivery/private cleanup, cancel recording/paused).
+PASS media browser/session suite against managed library, including playback and seek.
+PASS isolated reliability suite: broken-container AAC recovery, failed delivery retains staging, restored-access retry, SHA256 equivalence, release private duplicate, crash after finalization, external deletion not resurrected, discard marker recovery.
+Phone gear/settings/library and Cancel/discard popup visually verified. Test discard left private files empty.
+User reports actual incoming-call pause verified. Revised car Finish menu awaits actual car check.
+v0.7 November 4: PASS build/lint, processing instrumentation (MIC/voice recognition/voice communication/unprocessed when supported, On/Off requests, resume continuity, defaults, diagnostics, cancel), and existing recorder integration. Processing Settings visually checked on Pixel. AGC unavailable, NS/AEC exposed. Defaults restored. APK installed and dist copy updated.
+November 5 Android Auto discovery investigation: installed v0.7 package enabled, not stopped/hidden. Android Auto 17.9 unchanged. Autio checked in Customize launcher; Developer mode, Unknown sources and CAL beta already enabled. Fresh DHU session displayed Autio in launcher and opened recorder PaneTemplate without reinstall or setting changes. Disappearance in vehicle not reproduced. Test head unit server stopped afterward.
+
+2026-11-06 v0.9: build/lint PASS; interactive DHU lost-host-registration regression PASS; host PCM/missing-host/cancel PASS; standard recording regression PASS. Installed Pixel 3C091JEKB06568. Original lifecycle trigger not captured; real Binize PCM quality still unverified.

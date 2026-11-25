@@ -1,0 +1,28 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
+    <uses-feature android:name="android.software.car.templates_host.media" android:required="false" />
+    <application android:label="Autio UI Lab" android:icon="@drawable/ic_lab_record" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false">
+        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />
+        <meta-data android:name="androidx.car.app.minCarApiLevel" android:value="8" />
+        <meta-data android:name="androidx.car.app.TintableAttributionIcon" android:resource="@drawable/ic_lab_record" />
+        <activity android:name=".LabActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="androidx.car.app.media.action.SHOW_MEDIA_PLAYBACK" />
+            </intent-filter>
+        </activity>
+        <service android:name=".RecorderCarService" android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.MEDIA" />
+            </intent-filter>
+        </service>
+        <service android:name=".LabMediaService" android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

@@ -1,0 +1,48 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <package android:name="com.github.catfriend1.syncthingandroid" />
+        <package android:name="com.github.catfriend1.syncthingfork" />
+    </queries>
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
+    <uses-feature android:name="android.software.car.templates_host.media" android:required="false" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <application android:label="Autio Notes" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />
+        <meta-data android:name="androidx.car.app.minCarApiLevel" android:value="8" />
+        <meta-data android:name="com.google.android.gms.car.application.theme" android:resource="@style/AutioCarTheme" />
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/share_paths" />
+        </provider>
+        <activity android:name=".SettingsActivity" android:exported="false" />
+        <activity android:name=".ProcessingActivity" android:exported="false" />
+        <service android:name=".DeliveryJobs" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true" />
+        <activity android:name=".NotesActivity" android:exported="false" />
+        <activity android:name=".DeliveryActivity" android:exported="false" />
+        <activity android:name=".AutoSetupActivity" android:exported="false" />
+        <service android:name=".RecorderService" android:exported="false" android:foregroundServiceType="microphone" />
+        <service android:name=".RecorderCarService" android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.MEDIA" />
+            </intent-filter>
+        </service>
+        <service android:name=".AutoMediaService" android:exported="true" android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

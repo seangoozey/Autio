@@ -1,0 +1,7 @@
+<resources>
+    <attr name="colorAccent" format="color" />
+    <style name="AutioCarTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:colorAccent">#FF5252</item>
+        <item name="colorAccent">#FF5252</item>
+    </style>
+</resources>

@@ -1,0 +1,120 @@
+--- 
++++ 
+@@ -26,6 +26,7 @@
+     private AudioFocusRequest focus;
+     private AudioRecord recorder;
+     private CaptureProcessing processing;
++    private HostMicrophone host;
+     private long sessionSamples, nearFullScaleSamples;
+     private Thread worker;
+     private AacRecording wave;
+@@ -66,7 +67,9 @@
+         String action = intent == null ? "" : intent.getAction();
+         try {
+             if (saving) return START_NOT_STICKY;
+-            if("ARM".equals(action)) {
++            if("HOST_DISCONNECTED".equals(action)) {
++                if(host!=null) pause("Android Auto disconnected — reconnect and tap Resume");
++            } else if("ARM".equals(action)) {
+                 if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) throw new IOException("Allow microphone access on the phone first");
+                 carArmed=true;
+                 if(!hasNote) { state="Ready"; detail="Car recording enabled · microphone starts only when you choose Record"; }
+@@ -105,30 +108,37 @@
+             state = "Paused"; detail = "Audio is busy — tap Resume when ready"; notifyState(); return;
+         }
+         try {
+-            int requestedSource=CaptureProcessing.selectedSource(this);
+-            if(requestedSource==MediaRecorder.AudioSource.UNPROCESSED&&!CaptureProcessing.supportsUnprocessed(this))
+-                throw new IOException("Unprocessed capture is unavailable. Choose another source in Settings.");
+-            int size = Math.max(8192, AudioRecord.getMinBufferSize(AacRecording.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT));
+-            recorder = new AudioRecord(requestedSource, AacRecording.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, size);
+-            if (recorder.getState() != AudioRecord.STATE_INITIALIZED) throw new IOException("Microphone could not initialize");
+-            processing=new CaptureProcessing(this,recorder);
+-            sessionSamples=0;
+-            nearFullScaleSamples=0;
+-            AudioRecord source = recorder;
+-            captureCallback = new AudioManager.AudioRecordingCallback() {
+-                @Override public void onRecordingConfigChanged(List<AudioRecordingConfiguration> configs) {
+-                    if (running && recorder == source && configs.stream().anyMatch(AudioRecordingConfiguration::isClientSilenced))
+-                        pause("Paused — Android gave the microphone to another app");
+-                }
+-            };
+-            recorder.registerAudioRecordingCallback(getMainExecutor(), captureCallback);
+-            recorder.startRecording();
+-            if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) throw new IOException("Microphone could not start");
+-            inputSource = "Detecting microphone";
+-            updateProcessingReport();
++            if(CaptureProcessing.prefs(this).getBoolean("host_capture",false)) {
++                host=new HostMicrophone();
++                inputSource="Android Auto host microphone";
++                processingReport="Android Auto host capture · mono PCM 16 kHz → AAC 44.1 kHz\nPhone audio source and Android effect overrides do not apply. Host processing is controlled by the head unit and Android Auto.";
++            } else {
++                int requestedSource=CaptureProcessing.selectedSource(this);
++                if(requestedSource==MediaRecorder.AudioSource.UNPROCESSED&&!CaptureProcessing.supportsUnprocessed(this))
++                    throw new IOException("Unprocessed capture is unavailable. Choose another source in Settings.");
++                int size = Math.max(8192, AudioRecord.getMinBufferSize(AacRecording.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT));
++                recorder = new AudioRecord(requestedSource, AacRecording.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, size);
++                if (recorder.getState() != AudioRecord.STATE_INITIALIZED) throw new IOException("Microphone could not initialize");
++                processing=new CaptureProcessing(this,recorder);
++                sessionSamples=0;
++                nearFullScaleSamples=0;
++                AudioRecord source = recorder;
++                captureCallback = new AudioManager.AudioRecordingCallback() {
++                    @Override public void onRecordingConfigChanged(List<AudioRecordingConfiguration> configs) {
++                        if (running && recorder == source && configs.stream().anyMatch(AudioRecordingConfiguration::isClientSilenced))
++                            pause("Paused — Android gave the microphone to another app");
++                    }
++                };
++                recorder.registerAudioRecordingCallback(getMainExecutor(), captureCallback);
++                recorder.startRecording();
++                if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) throw new IOException("Microphone could not start");
++                inputSource = "Detecting microphone";
++                updateProcessingReport();
++            }
+             running = true; state = "Recording"; detail = "Listening • " + inputSource; silenceSince = SystemClock.elapsedRealtime();
+             worker = new Thread(this::capture, "Autio-capture"); worker.start(); notifyState();
+         } catch (Exception e) {
++            if(host!=null) { try { host.stop(); } catch(RuntimeException ignored) {} }
+             releaseRecorder(); audio.abandonAudioFocusRequest(focus);
+             throw new IOException(e.getMessage(), e);
+         }
+@@ -139,7 +149,7 @@
+         long lastRouteCheck = 0;
+         try {
+             while (running) {
+-                int count = recorder.read(samples, 0, samples.length, AudioRecord.READ_BLOCKING);
++                int count = host!=null ? host.read(samples) : recorder.read(samples, 0, samples.length, AudioRecord.READ_BLOCKING);
+                 if (!running) break;
+                 if (count < 0) throw new IOException("Microphone read failed (" + count + ")");
+                 if (count == 0) continue;
+@@ -167,9 +177,13 @@
+                 }
+                 if (now - lastCheck > 2000) { if(getFilesDir().getUsableSpace()<16L*1024*1024) { main.post(()->pause("Storage nearly full — stop and save this note")); break; } synchronized(lock) { wave.checkpoint(); } lastCheck = now; }
+             }
+-        } catch (Exception e) { main.post(() -> pause("Paused: " + e.getMessage())); }
++        } catch (Exception e) {
++            Thread failed=Thread.currentThread();
++            if(running) main.post(() -> { if(running&&worker==failed) pause("Paused: " + e.getMessage()); });
++        }
+     }
+     private void updateInputSource() {
++        if(host!=null) return;
+         try {
+             AudioDeviceInfo device=recorder.getRoutedDevice();
+             if(device==null) { inputSource="Input source unavailable"; return; }
+@@ -184,6 +198,7 @@
+         } catch(RuntimeException ignored) { inputSource="Input source unavailable"; }
+     }
+     private void releaseRecorder() {
++        if(host!=null) { CaptureProcessing.prefs(this).edit().putString("last_report",processingReport).apply(); host=null; }
+         if (recorder != null) {
+             updateProcessingReport();
+             CaptureProcessing.prefs(this).edit().putString("last_report",processingReport).apply();
+@@ -199,6 +214,7 @@
+     }
+     private void pause(String reason) {
+         running = false;
++        if(host!=null) { try { host.stop(); } catch(RuntimeException ignored) {} }
+         if (recorder != null) { try { recorder.stop(); } catch (IllegalStateException ignored) {} }
+         if (worker != null) {
+             try { worker.join(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }

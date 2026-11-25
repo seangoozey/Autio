@@ -1,0 +1,8 @@
+.gradle/
+.tools/
+**/build/
+local.properties
+.idea/
+*.iml
+verification/*.png
+verification/*.wav
